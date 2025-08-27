@@ -24,8 +24,5 @@ jobs:
         run: |
           poetry install --no-root
 
-      - name: Run Ruff Linter
-        run: make lint-check
-
-      - name: Run Black Formatter Check
-        run: make format-check
+      - name: Run Linters
+        run: make lint
