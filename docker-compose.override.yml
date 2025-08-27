@@ -11,7 +11,8 @@ services:
     volumes:
       - .:/app
       - venv-volume:/app/.venv
-    command: bash -c 'poetry install --no-root && poetry run python manage.py runserver 0.0.0.0:8000'
+      - static-volume:/app/static
+    command: bash -c 'poetry install --no-root && poetry run python manage.py collectstatic --no-input && poetry run python manage.py runserver 0.0.0.0:8000'
     depends_on:
       - db
     environment:
