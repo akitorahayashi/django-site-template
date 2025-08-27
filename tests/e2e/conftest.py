@@ -26,6 +26,10 @@ def e2e_setup(page_url: str) -> Generator[None, None, None]:
     # Load environment variables from .env.test
     load_dotenv(".env.test")
 
+    # Set PROJECT_NAME environment variable
+    project_name = "django-site-template"
+    os.environ["PROJECT_NAME"] = project_name
+
     # Determine if sudo should be used based on environment variable
     # This allows `SUDO=true make e2e-test` to work as expected.
     use_sudo = os.getenv("SUDO") == "true"

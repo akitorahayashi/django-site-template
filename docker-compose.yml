@@ -6,7 +6,7 @@ services:
       target: production
     restart: unless-stopped
     volumes:
-      - ${PROJECT_NAME}-static-volume-${ENV}:/app/static
+      - static-volume:/app/static
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     volumes:
-      - ${PROJECT_NAME}-db-volume-${ENV}:/var/lib/postgresql/data
+      - db-volume:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
@@ -32,11 +32,15 @@ services:
     ports:
       - "${HOST_BIND_IP:-127.0.0.1}:${HOST_PORT:-50080}:80"
     volumes:
-      - ${PROJECT_NAME}-static-volume-${ENV}:/app/static
+      - static-volume:/app/static
     depends_on:
       - web
     restart: unless-stopped
 
 volumes:
-  ${PROJECT_NAME}-static-volume-${ENV}:
-  ${PROJECT_NAME}-db-volume-${ENV}:
+  static-volume:
+    external: false
+    name: ${PROJECT_NAME}-static-volume-${ENV}
+  db-volume:
+    external: false
+    name: ${PROJECT_NAME}-db-volume-${ENV}

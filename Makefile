@@ -1,6 +1,7 @@
 .DEFAULT_GOAL := help
 
 PROJECT_NAME := $(shell basename $(CURDIR))
+TEST_PROJECT_NAME := $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Variables
@@ -18,9 +19,9 @@ DOCKER_CMD := $(SUDO_PREFIX) docker
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod $(DOCKER_CMD) compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
-TEST_COMPOSE := COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-test
+DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod $(DOCKER_CMD) compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
@@ -179,24 +180,30 @@ db-test: ## Run the slower, database-dependent tests locally
 	@ln -sf .env.test .env
 	@poetry run python -m pytest tests/db
 	
-.PHONY: e2e-test
-e2e-test: ## Run E2E tests
-	@echo "Running E2E tests..."
-	@poetry run pytest tests/e2e
-
 .PHONY: build-test
-build-test: ## Build and test without polluting local environment
+build-test: ## Build Docker image and run smoke tests in clean environment
+	@echo "Building Docker image and running smoke tests..."
 	@ln -sf .env.test .env
-	@echo "Running build test in isolated environment..."
-	@$(TEST_COMPOSE) build --no-cache web
-	@$(TEST_COMPOSE) down --remove-orphans -v || true
-	@echo "Build test completed successfully."
+	@$(DOCKER_CMD) build --target builder -t $(TEST_PROJECT_NAME):test . || (echo "Docker build failed"; exit 1)
+	@echo "Running smoke tests in Docker container..."
+	@$(DOCKER_CMD) run --rm \
+		--env-file .env.test \
+		-v $(CURDIR)/tests:/app/tests \
+		-v $(CURDIR)/apps:/app/apps \
+		-v $(CURDIR)/config:/app/config \
+		-v $(CURDIR)/manage.py:/app/manage.py \
+		-v $(CURDIR)/pyproject.toml:/app/pyproject.toml \
+		$(TEST_PROJECT_NAME):test \
+		sh -c "poetry run python -m pytest tests/unit/" || (echo "Smoke tests failed"; exit 1)
+	@echo "Cleaning up test image..."
+	@$(DOCKER_CMD) rmi $(TEST_PROJECT_NAME):test || true
 
-.PHONY: db-test
-db-test: ## Run the slower, database-dependent tests locally
-	@echo "Running database tests..."
+.PHONY: e2e-test
+e2e-test: ## Run end-to-end tests against a live application stack
+	@echo "Running end-to-end tests..."
 	@ln -sf .env.test .env
-	@$(DEV_COMPOSE) up -d db
-	@sleep 5
-	@poetry run python -m pytest tests/db
-	@$(DEV_COMPOSE) down
+	@poetry run python -m pytest tests/e2e
+
+
+
+

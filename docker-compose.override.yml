@@ -10,7 +10,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
-      - ${PROJECT_NAME}-venv-volume-${ENV}:/app/.venv
+      - venv-volume:/app/.venv
     command: bash -c 'poetry install --no-root && poetry run python manage.py runserver 0.0.0.0:8000'
     depends_on:
       - db
@@ -18,6 +18,12 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-django_db}
 
 volumes:
-  ${PROJECT_NAME}-venv-volume-${ENV}:
-  ${PROJECT_NAME}-static-volume-${ENV}:
-  ${PROJECT_NAME}-db-volume-${ENV}:
+  venv-volume:
+    external: false
+    name: ${PROJECT_NAME}-venv-volume-${ENV}
+  static-volume:
+    external: false
+    name: ${PROJECT_NAME}-static-volume-${ENV}
+  db-volume:
+    external: false
+    name: ${PROJECT_NAME}-db-volume-${ENV}
