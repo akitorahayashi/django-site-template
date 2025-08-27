@@ -28,12 +28,5 @@ jobs:
       - name: Install dependencies
         run: make setup
 
-      - name: Set up PostgreSQL service (for db-test)
-        if: matrix.test_target == 'db-test'
-        run: |
-          sudo systemctl start postgresql
-          sudo -u postgres createuser --createdb --superuser runner
-          sudo -u postgres createdb -O runner postgres
-
       - name: Run tests
         run: make ${{ matrix.test_target }}
