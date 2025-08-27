@@ -10,9 +10,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - .:/app
-      - venv:/app/.venv
+      - ${PROJECT_NAME}-venv-volume-${ENV}:/app/.venv
     command: bash -c 'poetry install --no-root && poetry run python manage.py runserver 0.0.0.0:8000'
 
 volumes:
-  venv:
-  static_volume:
+  ${PROJECT_NAME}-venv-volume-${ENV}:
+  ${PROJECT_NAME}-static-volume-${ENV}:
