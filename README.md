@@ -1,120 +1,113 @@
-# Gist Summarizer
+# Django Project Template
 
-このプロジェクトは、指定されたウェブページの内容を要約し、問い合わせに応答するDjangoアプリケーションです。
-近代的な開発プラクティスを導入しており、Docker、Makefile, GitHub ActionsによるCI/CDパイプラインが整備されています。
+This is a comprehensive Django project template designed to be a starting point for various web applications. It comes with modern development practices, including Docker, Makefile, and a CI/CD pipeline using GitHub Actions.
 
-## ✅ 前提条件
+## ✅ Prerequisites
 
-開発を始める前に、以下のツールがインストールされていることを確認してください。
+Before you begin, ensure you have the following tools installed:
 
-- **Docker**: 最新版を推奨
-- **Docker Compose**: Dockerに同梱
-- **Make**: `make` コマンドが利用可能であること
-- **Python**: 3.12 (推奨, `.python-version` ファイル参照)
-- **Poetry**: 1.8.3 (推奨)
+- **Docker**: Latest version recommended
+- **Docker Compose**: Included with Docker
+- **Make**: The `make` command should be available
+- **Python**: 3.12 (recommended, see `.python-version`)
+- **Poetry**: 1.8.3 or compatible (for local development)
 
-## 🚀 はじめに (Getting Started)
+## 🚀 Getting Started
 
-開発を始めるには、まずリポジトリをクローンし、以下のコマンドで **ホストマシンに** Poetryの仮想環境をセットアップし、依存関係をインストールします。
+To start your new project, clone this repository. Then, to set up the local environment and install dependencies using Poetry, run:
 
 ```bash
 make setup
 ```
+This command will also create the necessary `.env` files from the example file.
 
-## 🐳 コンテナのビルドと実行
+## 🐳 Building and Running with Docker
 
-アプリケーションはDockerコンテナ上で実行されます。以下のコマンドでコンテナをビルドし、バックグラウンドで起動します。
+The application is designed to run inside Docker containers. To build and start the containers in the background, use:
 
 ```bash
 make up
 ```
 
-コンテナが起動したら、`http://localhost:8000`でアプリケーションにアクセスできます。
+Once the containers are running, you can access the application at `http://localhost:8000`.
 
-> **📝 Linuxユーザー向けの注意**
-> 開発環境では、コンテナからホストマシン上のサービス（例：モックサーバー）にアクセスするために `host.docker.internal` を使用します。この設定は `docker-compose.override.yml` 内の `extra_hosts` で自動的に行われます。もし `host.docker.internal` が解決できない古いDockerバージョンを使用している場合は、Dockerを最新版に更新してください。
-
-コンテナを停止・削除するには、以下のコマンドを実行します。
-
+To stop and remove the containers, run:
 ```bash
 make down
 ```
 
-### 本番環境を模した実行 (Production-like Execution)
+### Production-like Execution
 
-本番環境をシミュレートするためのコマンドが用意されています。これにより、`docker-compose.override.yml` を使用せず、本番に近い設定でコンテナを起動できます。
-
-コンテナをビルドして起動するには、以下のコマンドを実行します。
+To simulate a production environment, you can use a command that starts the containers without the development-specific overrides:
 
 ```bash
 make up-prod
 ```
 
-> **⚠️ 重要**
-> `make up-prod` を実行する前に、`.env.example` をコピーして `.env.prod` ファイルを作成し、本番用の環境変数を設定する必要があります。`.env.prod` ファイルは `.gitignore` によりバージョン管理から除外されています。
+> **⚠️ Important**
+> Before running `make up-prod`, you must copy `.env.example` to `.env.prod` and configure the production-specific environment variables. The `.env.prod` file is ignored by Git.
 
-本番環境用のコンテナを停止・削除するには、以下のコマンドを実行します。
-
+To stop and remove the production-like containers:
 ```bash
 make down-prod
 ```
 
-## ✅ テストとコード品質
+## ✅ Testing and Code Quality
 
-プロジェクトには、コードの品質を維持するためのテスト、リンター、フォーマッターが用意されています。
+The project is equipped with tools to maintain code quality, including tests, a linter, and a formatter.
 
-### テストの実行
+### Running Tests
 
-ローカルでテストを実行するには、いくつかの方法があります。
+There are several ways to run tests:
 
-1.  **Makeコマンドを使用する方法 (ホストのPoetry環境を利用):**
+1.  **Using the Make command (recommended for local testing):**
     ```bash
-    make test ENV=dev
+    make test
     ```
+    This runs the tests inside the Docker container.
 
-2.  **Dockerコンテナ内で直接実行する方法:**
-    コンテナが起動している(`make up`実行後)ことを確認し、以下のコマンドを実行します。
+2.  **Directly inside the Docker container:**
+    Make sure the containers are running (`make up`), then execute:
     ```bash
     docker compose exec web poetry run pytest
     ```
 
-### コードのフォーマット
+### Code Formatting and Linting
 
-`black`と`ruff`を使ってコードを自動整形します。
+We use `black` and `ruff` to automatically format the code.
+
+To format your code:
 ```bash
 make format
 ```
 
-### リンターとフォーマットのチェック
-
-CIでも実行されるチェックです。コードに問題がないかを確認します。
+To check for linting and formatting issues (as the CI pipeline does):
 ```bash
 make lint-check
 make format-check
 ```
 
-## 🛠 Makefileコマンド一覧
+## 🛠 Makefile Commands
 
-プロジェクトで利用可能なすべてのコマンドは、`make help`で確認できます。以下は主なコマンドの概要です。
+A list of all available commands can be viewed by running `make help`. Here is an overview of the main commands:
 
-| コマンド              | 説明                                                                 |
-| --------------------- | -------------------------------------------------------------------- |
-| `make setup`          | `.env.dev` と `.env.prod` ファイルを `.env.example` から作成します。   |
-| `make up`             | 開発環境のDockerコンテナをビルドして起動します。                     |
-| `make down`           | 開発環境のDockerコンテナを停止・削除します。                         |
-| `make rebuild`        | 開発コンテナをキャッシュなしで再ビルドし、再起動します。             |
-| `make logs`           | 開発コンテナのログを表示します。                                     |
-| `make shell`          | 開発用の`web`コンテナ内でシェルを起動します。                        |
-| `make up-prod`        | 本番環境用のDockerコンテナをビルドして起動します。                   |
-| `make down-prod`      | 本番環境用のDockerコンテナを停止・削除します。                       |
-| `make migrate`        | 開発環境でデータベースのマイグレーションを実行します。               |
-| `make makemigrations` | 新しいマイグレーションファイルを作成します。                         |
-| `make superuser`      | 開発環境でDjangoのスーパーユーザーを作成します。                     |
-| `make migrate-prod`   | 本番環境でデータベースのマイグレーションを実行します。               |
-| `make superuser-prod` | 本番環境でDjangoのスーパーユーザーを作成します。                     |
-| `make test`           | `web`コンテナ内でテストスイートを実行します。                        |
-| `make format`         | `black` と `ruff` を使ってコードをフォーマットします。               |
-| `make lint`           | `ruff` を使ってコードをリントします。                                |
-| `make lint-check`     | `ruff` でリントエラーがないかチェックします。                        |
-| `make clean`          | すべてのコンテナを停止し、生成されたファイルをクリーンアップします。 |
-| `make help`           | 利用可能なすべてのコマンドのリストと説明を表示します。               |
+| Command              | Description                                                                 |
+| --------------------- | --------------------------------------------------------------------------- |
+| `make setup`          | Creates `.env.dev` and `.env.prod` from `.env.example`.                     |
+| `make up`             | Builds and starts the development Docker containers.                        |
+| `make down`           | Stops and removes the development Docker containers.                        |
+| `make rebuild`        | Rebuilds development containers without cache and restarts them.            |
+| `make logs`           | Shows the logs for the development containers.                              |
+| `make shell`          | Opens a shell inside the `web` container for development.                   |
+| `make up-prod`        | Builds and starts the production-like Docker containers.                    |
+| `make down-prod`      | Stops and removes the production-like Docker containers.                    |
+| `make migrate`        | Runs database migrations in the development environment.                    |
+| `make makemigrations` | Creates new migration files based on model changes.                         |
+| `make superuser`      | Creates a Django superuser in the development environment.                  |
+| `make migrate-prod`   | Runs database migrations in the production environment.                     |
+| `make superuser-prod` | Creates a Django superuser in the production environment.                   |
+| `make test`           | Runs the test suite inside the `web` container.                             |
+| `make format`         | Formats the code using `black` and `ruff`.                                  |
+| `make lint-check`     | Checks for linting errors with `ruff`.                                      |
+| `make clean`          | Stops all containers and cleans up generated files.                         |
+| `make help`           | Displays a list of all available commands and their descriptions.           |

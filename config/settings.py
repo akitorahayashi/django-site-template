@@ -25,32 +25,6 @@ env_path = BASE_DIR / ".env"
 if env_path.is_file():
     load_dotenv(dotenv_path=env_path)
 
-# 環境変数からすべてのカスタム設定を読み込む
-PVT_LLM_API_URL = os.getenv("PVT_LLM_API_URL", "").strip() or None
-_summary_max_chars_raw = os.getenv("SUMMARY_MAX_CHARS", "600")
-
-
-# 読み込んだ設定値を検証
-if PVT_LLM_API_URL:
-    _parsed_url = urlparse(PVT_LLM_API_URL)
-    if _parsed_url.scheme not in ("http", "https"):
-        raise ImproperlyConfigured(
-            "PVT_LLM_API_URL must start with http:// or https://."
-        )
-    if not _parsed_url.netloc:
-        raise ImproperlyConfigured(
-            "PVT_LLM_API_URL must include a hostname (e.g., http://localhost:8000)."
-        )
-    PVT_LLM_API_URL = PVT_LLM_API_URL.rstrip("/")
-
-try:
-    SUMMARY_MAX_CHARS = int(_summary_max_chars_raw)
-    if SUMMARY_MAX_CHARS < 0:
-        raise ValueError
-except (ValueError, TypeError):
-    raise ImproperlyConfigured("SUMMARY_MAX_CHARS must be a non-negative integer.")
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -72,7 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.gist",
+    "apps.hello",
 ]
 
 MIDDLEWARE = [

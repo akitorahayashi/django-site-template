@@ -108,21 +108,13 @@ superuser-prod: ## [PROD] Create a Django superuser in the production-like envir
 	@$(PROD_COMPOSE) exec web python manage.py createsuperuser
 
 # --- Code Quality and Testing ---
-# Define VENV_PATH to ensure we use the correct python/pytest executable.
-VENV_PATH := $(shell poetry env info --path)
-
 .PHONY: test
-test: unit-test e2e-test ## Run both unit and E2E tests
-
-.PHONY: unit-test
-unit-test: ## Run unit tests
-	@echo "Running unit tests..."
-	@$(VENV_PATH)/bin/pytest tests/unit
+test: e2e-test ## Run all tests
 
 .PHONY: e2e-test
 e2e-test: ## Run E2E tests
 	@echo "Running E2E tests..."
-	@$(VENV_PATH)/bin/pytest tests/e2e
+	@poetry run pytest tests/e2e
 
 .PHONY: format
 format: ## Format the code using Black and Ruff
