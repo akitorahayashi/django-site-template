@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/app
+      - venv:/app/.venv
+    command: bash -c 'poetry install --no-root && poetry run python manage.py runserver 0.0.0.0:8000'
+
+volumes:
+  venv:
+  static_volume:

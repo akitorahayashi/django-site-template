@@ -1,0 +1,25 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    volumes:
+      - static_volume:/app/static
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:${HOST_PORT:-50080}:80"
+    volumes:
+      - static_volume:/app/static
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  static_volume:

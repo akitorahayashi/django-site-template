@@ -1,0 +1,32 @@
+name: Run Tests
+
+on:
+  workflow_call:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test_target: [unit-test, e2e-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install and configure Poetry
+        run: |
+          pipx install poetry
+          poetry config virtualenvs.in-project true
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: make setup
+
+      - name: Run tests
+        run: make ${{ matrix.test_target }}
