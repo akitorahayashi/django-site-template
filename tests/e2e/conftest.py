@@ -13,7 +13,8 @@ def page_url() -> str:
     """
     Returns the URL of the page to be tested.
     """
-    host_port = os.getenv("HOST_PORT", "8000")
+    # This default must match the default in docker-compose.yml
+    host_port = os.getenv("HOST_PORT", "50080")
     return f"http://localhost:{host_port}/"
 
 

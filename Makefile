@@ -109,7 +109,12 @@ superuser-prod: ## [PROD] Create a Django superuser in the production-like envir
 
 # --- Code Quality and Testing ---
 .PHONY: test
-test: e2e-test ## Run all tests
+test: unit-test e2e-test ## Run both unit and E2E tests
+
+.PHONY: unit-test
+unit-test: ## Run unit tests
+	@echo "Running unit tests..."
+	@poetry run pytest tests/unit
 
 .PHONY: e2e-test
 e2e-test: ## Run E2E tests
