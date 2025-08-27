@@ -1,24 +1,16 @@
-import os
-
 import httpx
 import pytest
-from dotenv import load_dotenv
-
-load_dotenv(".env.test")
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_index_page_loads():
+async def test_index_page_loads(page_url: str):
     """
     Performs an end-to-end test on the index page ('/').
     """
-    host_port = os.getenv("HOST_PORT", "8000")
-    index_url = f"http://localhost:{host_port}/"
-
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.get(index_url)
+        response = await client.get(page_url)
 
     assert response.status_code == 200
-    assert "<h1>Enter URL to Scrape</h1>" in response.text
-    assert "<title>Web Page Scraper</title>" in response.text
+    assert "<h1>Welcome to your new Django project!</h1>" in response.text
+    assert "<title>Django Project</title>" in response.text

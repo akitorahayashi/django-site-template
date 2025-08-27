@@ -8,15 +8,27 @@ import pytest
 from dotenv import load_dotenv
 
 
+@pytest.fixture(scope="session")
+def page_url() -> str:
+    """
+    Returns the URL of the page to be tested.
+    """
+    # This default must match the default in docker-compose.yml
+    host_port = os.getenv("HOST_PORT", "50080")
+    return f"http://localhost:{host_port}/"
+
+
 @pytest.fixture(scope="session", autouse=True)
-def e2e_setup() -> Generator[None, None, None]:
+def e2e_setup(page_url: str) -> Generator[None, None, None]:
     """
     Manages the lifecycle of the application for end-to-end testing.
     """
     # Load environment variables from .env.test
     load_dotenv(".env.test")
-    host_port = os.getenv("HOST_PORT", "8000")
-    health_url = f"http://localhost:{host_port}/"
+
+    # Set PROJECT_NAME environment variable
+    project_name = "django-site-template"
+    os.environ["PROJECT_NAME"] = project_name
 
     # Determine if sudo should be used based on environment variable
     # This allows `SUDO=true make e2e-test` to work as expected.
@@ -32,7 +44,7 @@ def e2e_setup() -> Generator[None, None, None]:
         "--env-file",
         ".env.test",
         "--project-name",
-        "gist-test",
+        "template-test",
         "up",
         "-d",
         "--build",
@@ -43,7 +55,7 @@ def e2e_setup() -> Generator[None, None, None]:
     compose_down_command = docker_command + [
         "compose",
         "--project-name",
-        "gist-test",
+        "template-test",
         "down",
         "--remove-orphans",
     ]
@@ -52,23 +64,26 @@ def e2e_setup() -> Generator[None, None, None]:
     start_time = time.time()
     timeout = 120
     is_healthy = False
-    print(f"Polling health check at {health_url}...")
+    print(f"Polling health check at {page_url}...")
     while time.time() - start_time < timeout:
         try:
-            response = httpx.get(health_url, timeout=5)
+            response = httpx.get(page_url, timeout=5)
             if response.status_code == 200:
                 print("✅ Application is healthy!")
                 is_healthy = True
                 break
-        except httpx.RequestError:
-            print("⏳ Application not yet healthy, retrying...")
+            else:
+                print(f"⏳ Health check returned {response.status_code}, retrying...")
+                time.sleep(5)
+        except httpx.RequestError as exc:
+            print(f"⏳ Application not yet healthy ({exc!r}), retrying...")
             time.sleep(5)
 
     if not is_healthy:
         log_command = docker_command + [
             "compose",
             "--project-name",
-            "gist-test",
+            "template-test",
             "logs",
             "web",
         ]
