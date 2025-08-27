@@ -68,8 +68,11 @@ def e2e_setup(page_url: str) -> Generator[None, None, None]:
                 print("✅ Application is healthy!")
                 is_healthy = True
                 break
-        except httpx.RequestError:
-            print("⏳ Application not yet healthy, retrying...")
+            else:
+                print(f"⏳ Health check returned {response.status_code}, retrying...")
+                time.sleep(5)
+        except httpx.RequestError as exc:
+            print(f"⏳ Application not yet healthy ({exc!r}), retrying...")
             time.sleep(5)
 
     if not is_healthy:

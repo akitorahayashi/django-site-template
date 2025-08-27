@@ -87,6 +87,14 @@ make lint-check
 make format-check
 ```
 
+## 📂 Project Structure
+
+A key feature of this template is how Django apps are organized.
+
+-   **`apps/` directory**: All Django applications reside within the `apps/` directory.
+-   **Namespace Package**: The `apps/` directory is configured as a [PEP 420 namespace package](https://www.python.org/dev/peps/pep-0420/), meaning it does **not** contain an `__init__.py` file. This allows for better separation of concerns and makes it easier to add or remove apps.
+-   **Packaging**: The `pyproject.toml` file is configured to include the entire `apps` directory in the distribution.
+
 ## 🛠 Makefile Commands
 
 A list of all available commands can be viewed by running `make help`. Here is an overview of the main commands:
