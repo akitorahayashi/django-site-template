@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test_target: [unit-test, e2e-test, build-test]
+        test_target: [unit-test, db-test, build-test, e2e-test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,6 +27,13 @@ jobs:
 
       - name: Install dependencies
         run: make setup
+
+      - name: Set up PostgreSQL service (for db-test)
+        if: matrix.test_target == 'db-test'
+        run: |
+          sudo systemctl start postgresql
+          sudo -u postgres createuser --createdb --superuser runner
+          sudo -u postgres createdb -O runner postgres
 
       - name: Run tests
         run: make ${{ matrix.test_target }}

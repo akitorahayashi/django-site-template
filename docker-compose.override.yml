@@ -12,7 +12,12 @@ services:
       - .:/app
       - ${PROJECT_NAME}-venv-volume-${ENV}:/app/.venv
     command: bash -c 'poetry install --no-root && poetry run python manage.py runserver 0.0.0.0:8000'
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-django_db}
 
 volumes:
   ${PROJECT_NAME}-venv-volume-${ENV}:
   ${PROJECT_NAME}-static-volume-${ENV}:
+  ${PROJECT_NAME}-db-volume-${ENV}:

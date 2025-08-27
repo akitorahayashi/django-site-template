@@ -9,6 +9,22 @@ services:
       - ${PROJECT_NAME}-static-volume-${ENV}:/app/static
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-django_db}
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-django_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - ${PROJECT_NAME}-db-volume-${ENV}:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   nginx:
     build:
@@ -23,3 +39,4 @@ services:
 
 volumes:
   ${PROJECT_NAME}-static-volume-${ENV}:
+  ${PROJECT_NAME}-db-volume-${ENV}:

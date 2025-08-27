@@ -145,7 +145,7 @@ superuser-prod: ## [PROD] Create a Django superuser in production-like environme
 	@$(PROD_COMPOSE) exec web python manage.py createsuperuser
 
 # ==============================================================================
-# Testing and Code Quality
+#  Code Quality
 # ==============================================================================
 
 .PHONY: format
@@ -161,11 +161,24 @@ lint: ## Check code format and lint issues
 	@echo "Checking code with Ruff..."
 	@poetry run ruff check .
 
+# ==============================================================================
+#  Testing
+# ==============================================================================
+
+.PHONY: test
+test: unit-test build-test db-test e2e-test ## Run the full test suite
+
 .PHONY: unit-test
 unit-test: ## Run unit tests
 	@echo "Running unit tests..."
 	@poetry run pytest tests/unit
 
+.PHONY: db-test
+db-test: ## Run the slower, database-dependent tests locally
+	@echo "Running database tests..."
+	@ln -sf .env.test .env
+	@poetry run python -m pytest tests/db
+	
 .PHONY: e2e-test
 e2e-test: ## Run E2E tests
 	@echo "Running E2E tests..."
@@ -179,5 +192,11 @@ build-test: ## Build and test without polluting local environment
 	@$(TEST_COMPOSE) down --remove-orphans -v || true
 	@echo "Build test completed successfully."
 
-.PHONY: test
-test: unit-test build-test e2e-test ## Run the full test suite
+.PHONY: db-test
+db-test: ## Run the slower, database-dependent tests locally
+	@echo "Running database tests..."
+	@ln -sf .env.test .env
+	@$(DEV_COMPOSE) up -d db
+	@sleep 5
+	@poetry run python -m pytest tests/db
+	@$(DEV_COMPOSE) down
