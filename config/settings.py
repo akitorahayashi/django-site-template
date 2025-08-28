@@ -10,26 +10,47 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+import dj_database_url
+from dotenv import find_dotenv, load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .envファイルが存在する場合に、そこから設定を読み込む
-env_path = BASE_DIR / ".env"
-if env_path.is_file():
-    load_dotenv(dotenv_path=env_path)
+
+# Environment variables loading
+# ------------------------------------------------------------------------------
+# The order of loading is crucial. `python-dotenv` does not override
+# existing environment variables by default. To achieve the desired priority
+# (.env.local > .env.{DJANGO_ENV} > .env), we must load the files in
+# reverse order of precedence.
+
+# Load the base .env file for production defaults and common settings.
+load_dotenv(find_dotenv(".env"))
+
+# Load environment-specific settings.
+# DJANGO_ENV defaults to 'production' if not set.
+DJANGO_ENV = os.getenv("DJANGO_ENV", "production")
+load_dotenv(find_dotenv(f".env.{DJANGO_ENV}"), override=True)
+
+# Load .env.local for local machine overrides.
+# This file has the highest priority.
+load_dotenv(find_dotenv(".env.local"), override=True)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&+b&$5acbee)+^*#i03fr*say6xn6(p3m+30*og@de3t2avt81"
+SECRET_KEY = os.getenv(
+    "SECRET_KEY", "django-insecure-&+b&$5acbee)+^*#i03fr*say6xn6(p3m+30*og@de3t2avt81"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# The default is False, but can be overridden by .env files.
+DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 ALLOWED_HOSTS = []
 
@@ -78,12 +99,17 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# https://github.com/jazzband/dj-database-url
+# ------------------------------------------------------------------------------
 
+# The default database is SQLite for simple local development.
+# It can be overridden by setting the DATABASE_URL environment variable.
+# Example for PostgreSQL: postgresql://user:password@host:port/dbname
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+    )
 }
 
 

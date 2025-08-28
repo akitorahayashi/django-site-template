@@ -29,4 +29,15 @@ jobs:
         run: make setup
 
       - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'test-secret-key' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgres://user:pass@localhost:5432/testdb' }}
+          DJANGO_ENV: test
+          # The following variables are for docker-compose, but we set them here for consistency.
+          DB_NAME: ${{ secrets.DB_NAME || 'testdb' }}
+          DB_USER: ${{ secrets.DB_USER || 'user' }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'pass' }}
+          HOST_BIND_IP: "127.0.0.1"
+          HOST_PORT: "8000"
         run: make ${{ matrix.test_target }}

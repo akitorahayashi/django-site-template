@@ -14,38 +14,51 @@ Before you begin, ensure you have the following tools installed:
 
 ## 🚀 Getting Started
 
-To start your new project, clone this repository. Then, to set up the local environment and install dependencies using Poetry, run:
+To start your new project, clone this repository. Then, to set up the local environment, install dependencies, and create a default `.env` file, simply run:
 
 ```bash
 make setup
 ```
-This command will also create the necessary `.env` files from the example file.
+
+This command installs all necessary packages with Poetry and creates a `.env` file from the `.env.example` template if it doesn't already exist. You can customize the `.env` file with your specific production settings.
+
+    For more details, see the **Environment Variable Management** section below.
+
+## ⚙️ Environment Variable Management
+
+This project uses a layered approach to manage environment variables, allowing for flexible configuration across different environments.
+
+-   **.env**: The base configuration file. It should contain all necessary variables for the **production** environment. It is not committed to Git.
+-   **.env.development**: Contains overrides for the **development** environment (e.g., `DEBUG=True`). It is committed to Git.
+-   **.env.test**: Contains overrides for the **testing** environment (e.g., in-memory database). It is committed to Git.
+-   **.env.local**: For personal, local overrides. This file is **not** committed to Git and can be used to temporarily change settings without affecting other environments.
+
+The configuration is loaded with the following priority: `.env.local` > `.env.{DJANGO_ENV}` > `.env`. The `DJANGO_ENV` variable is automatically set by the `Makefile` commands (e.g., `development` for `make up`, `test` for `make test`).
 
 ## 🐳 Building and Running with Docker
 
-The application is designed to run inside Docker containers. To build and start the containers in the background, use:
+The application is designed to run inside Docker containers.
 
+### Development
+
+To build and start the development containers in the background, use:
 ```bash
 make up
 ```
-
-Once the containers are running, you can access the application at `http://localhost:8000`.
+This command sets `DJANGO_ENV=development`, so settings from `.env.development` are automatically applied. The application will be accessible at `http://localhost:8000`.
 
 To stop and remove the containers, run:
 ```bash
 make down
 ```
 
-### Production-like Execution
+### Production
 
-To simulate a production environment, you can use a command that starts the containers without the development-specific overrides:
-
+To run the application in a production-like environment, use:
 ```bash
 make up-prod
 ```
-
-> **⚠️ Important**
-> Before running `make up-prod`, you must copy `.env.example` to `.env.prod` and configure the production-specific environment variables. The `.env.prod` file is ignored by Git.
+This command sets `DJANGO_ENV=production`, which uses the base `.env` file for configuration. Ensure your `.env` file is correctly configured for production before running this command.
 
 To stop and remove the production-like containers:
 ```bash
@@ -58,19 +71,11 @@ The project is equipped with tools to maintain code quality, including tests, a 
 
 ### Running Tests
 
-There are several ways to run tests:
-
-1.  **Using the Make command (recommended for local testing):**
-    ```bash
-    make test
-    ```
-    This runs the tests inside the Docker container.
-
-2.  **Directly inside the Docker container:**
-    Make sure the containers are running (`make up`), then execute:
-    ```bash
-    docker compose exec web poetry run pytest
-    ```
+To run the full test suite, use the following command:
+```bash
+make test
+```
+This command sets `DJANGO_ENV=test` to ensure the test-specific configuration from `.env.test` is used.
 
 ### Code Formatting and Linting
 
@@ -83,8 +88,7 @@ make format
 
 To check for linting and formatting issues (as the CI pipeline does):
 ```bash
-make lint-check
-make format-check
+make lint
 ```
 
 ## 📂 Project Structure
@@ -101,21 +105,21 @@ A list of all available commands can be viewed by running `make help`. Here is a
 
 | Command              | Description                                                                 |
 | --------------------- | --------------------------------------------------------------------------- |
-| `make setup`          | Creates `.env.dev` and `.env.prod` from `.env.example`.                     |
-| `make up`             | Builds and starts the development Docker containers.                        |
+| `make setup`          | Installs project dependencies using Poetry.                                 |
+| `make up`             | Builds and starts the development Docker containers (`DJANGO_ENV=development`). |
 | `make down`           | Stops and removes the development Docker containers.                        |
 | `make rebuild`        | Rebuilds development containers without cache and restarts them.            |
 | `make logs`           | Shows the logs for the development containers.                              |
 | `make shell`          | Opens a shell inside the `web` container for development.                   |
-| `make up-prod`        | Builds and starts the production-like Docker containers.                    |
+| `make up-prod`        | Builds and starts the production-like Docker containers (`DJANGO_ENV=production`). |
 | `make down-prod`      | Stops and removes the production-like Docker containers.                    |
 | `make migrate`        | Runs database migrations in the development environment.                    |
 | `make makemigrations` | Creates new migration files based on model changes.                         |
 | `make superuser`      | Creates a Django superuser in the development environment.                  |
 | `make migrate-prod`   | Runs database migrations in the production environment.                     |
 | `make superuser-prod` | Creates a Django superuser in the production environment.                   |
-| `make test`           | Runs the test suite inside the `web` container.                             |
+| `make test`           | Runs the test suite with `DJANGO_ENV=test`.                                 |
 | `make format`         | Formats the code using `black` and `ruff`.                                  |
-| `make lint-check`     | Checks for linting errors with `ruff`.                                      |
+| `make lint`           | Checks for linting and formatting errors.                                   |
 | `make clean`          | Stops all containers and cleans up generated files.                         |
 | `make help`           | Displays a list of all available commands and their descriptions.           |
