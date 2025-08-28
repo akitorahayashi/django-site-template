@@ -19,9 +19,9 @@ DOCKER_CMD := $(SUDO_PREFIX) docker
 # Docker Commands
 # ==============================================================================
 
-DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=dev COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-dev
-PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=prod COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod $(DOCKER_CMD) compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
-TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) ENV=test COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-test
+DEV_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-dev $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-dev
+PROD_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-prod $(DOCKER_CMD) compose -f docker-compose.yml --project-name $(PROJECT_NAME)-prod
+TEST_COMPOSE := PROJECT_NAME=$(PROJECT_NAME) COMPOSE_PROJECT_NAME=$(PROJECT_NAME)-test $(DOCKER_CMD) compose --project-name $(PROJECT_NAME)-test
 
 # ==============================================================================
 # Help
