@@ -172,6 +172,7 @@ test: unit-test build-test db-test e2e-test ## Run the full test suite
 .PHONY: unit-test
 unit-test: ## Run unit tests
 	@echo "Running unit tests..."
+	@ln -sf .env.test .env
 	@poetry run pytest tests/unit
 
 .PHONY: db-test
