@@ -43,4 +43,4 @@ volumes:
     name: ${PROJECT_NAME}-static-volume
   db-volume:
     external: false
-    name: ${PROJECT_NAME}-db-volume-${ENV}
+    name: ${COMPOSE_PROJECT_NAME}-db-volume
