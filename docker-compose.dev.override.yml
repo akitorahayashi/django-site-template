@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DEV_DB_NAME}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d dj-site-templ-dev" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DEV_DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -17,14 +17,11 @@ services:
       target: development
     env_file:
       - .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DEV_DB_NAME:-dj-site-templ-dev}
     volumes:
       - .:/app
       - /app/.venv
-    depends_on:
-      db:
-        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DEV_DB_NAME:-${POSTGRES_DEV_DB_NAME--dj-site-templ-dev}}
 
   nginx:
     ports:

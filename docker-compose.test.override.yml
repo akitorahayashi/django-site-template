@@ -2,6 +2,11 @@ services:
   db:
     environment:
       - POSTGRES_DB=${POSTGRES_TEST_DB_NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_TEST_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build:
@@ -16,5 +21,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  nginx:
     ports:
       - "${HOST_BIND_IP:-127.0.0.1}:${TEST_PORT:-8002}:8000"

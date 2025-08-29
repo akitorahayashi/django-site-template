@@ -78,9 +78,7 @@ def e2e_setup() -> Generator[None, None, None]:
 
     try:
         print("\n🚀 Starting E2E services...")
-        subprocess.run(
-            compose_up_command, check=True, timeout=300
-        )  # 5 minutes timeout
+        subprocess.run(compose_up_command, check=True, timeout=300)  # 5 minutes timeout
 
         # Health Check
         start_time = time.time()
