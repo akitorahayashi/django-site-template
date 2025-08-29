@@ -18,10 +18,11 @@ services:
       - COLLECT_STATIC=0
     volumes:
       - .:/app
+      - /app/.venv
     depends_on:
       db:
         condition: service_healthy
 
   nginx:
     ports:
-      - "${HOST_BIND_IP:-127.0.0.1}:${TEST_PORT:-8002}:8000"
+      - "${HOST_BIND_IP:-127.0.0.1}:${TEST_PORT:-8002}:80"
