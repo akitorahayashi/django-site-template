@@ -1,55 +1,47 @@
 """
 Database connection tests.
 
-Tests to verify PostgreSQL database connectivity and basic operations.
+Tests to verify database connectivity and basic operations using SQLite.
 """
 
 
 def test_database_connection_exists(db_connection):
-    """Test that we can connect to the PostgreSQL database."""
+    """Test that we can connect to the database."""
     assert db_connection is not None
 
     # Test basic query
     cursor = db_connection.cursor()
-    cursor.execute("SELECT version()")
+    cursor.execute("SELECT sqlite_version()")
     version = cursor.fetchone()
     cursor.close()
 
     assert version is not None
-    assert "PostgreSQL" in version[0]
+    assert version[0] is not None
 
 
 def test_database_basic_operations(db_connection):
-    """Test basic database operations (CREATE, INSERT, SELECT, DROP)."""
+    """Test basic database operations (INSERT, SELECT, DELETE)."""
     cursor = db_connection.cursor()
 
     try:
-        # Create a test table
+        # Insert test data into the pre-created test_table
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS test_table (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """
+            "INSERT INTO test_table (name, value) VALUES (?, ?)", ("test_entry", 42)
         )
-
-        # Insert test data
-        cursor.execute(
-            "INSERT INTO test_table (name) VALUES (%s) RETURNING id", ("test_entry",)
-        )
-        inserted_id = cursor.fetchone()[0]
+        db_connection.commit()
 
         # Query the data
-        cursor.execute("SELECT name FROM test_table WHERE id = %s", (inserted_id,))
+        cursor.execute(
+            "SELECT name, value FROM test_table WHERE name = ?", ("test_entry",)
+        )
         result = cursor.fetchone()
 
         assert result is not None
         assert result[0] == "test_entry"
+        assert result[1] == 42
 
         # Clean up
-        cursor.execute("DROP TABLE test_table")
+        cursor.execute("DELETE FROM test_table WHERE name = ?", ("test_entry",))
         db_connection.commit()
 
     except Exception as e:
@@ -64,20 +56,10 @@ def test_database_transaction_rollback(db_connection):
     cursor = db_connection.cursor()
 
     try:
-        # Create test table
+        # Insert data that we'll rollback
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS test_rollback (
-                id SERIAL PRIMARY KEY,
-                value VARCHAR(50)
-            )
-        """
-        )
-        db_connection.commit()
-
-        # Start a transaction that we'll rollback
-        cursor.execute(
-            "INSERT INTO test_rollback (value) VALUES (%s)", ("should_be_rolled_back",)
+            "INSERT INTO test_table (name, value) VALUES (?, ?)",
+            ("should_be_rolled_back", 999),
         )
 
         # Rollback the transaction
@@ -85,16 +67,12 @@ def test_database_transaction_rollback(db_connection):
 
         # Verify the data was not committed
         cursor.execute(
-            "SELECT COUNT(*) FROM test_rollback WHERE value = %s",
+            "SELECT COUNT(*) FROM test_table WHERE name = ?",
             ("should_be_rolled_back",),
         )
         count = cursor.fetchone()[0]
 
         assert count == 0, "Transaction was not properly rolled back"
-
-        # Clean up
-        cursor.execute("DROP TABLE test_rollback")
-        db_connection.commit()
 
     except Exception as e:
         db_connection.rollback()

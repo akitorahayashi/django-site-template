@@ -1,0 +1,28 @@
+services:
+  db:
+    environment:
+      - POSTGRES_DB=${POSTGRES_TEST_DB_NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_TEST_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      target: development
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_TEST_DB_NAME:-dj-site-templ-test}
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=True
+      - COLLECT_STATIC=0
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:${TEST_PORT:-8002}:80"

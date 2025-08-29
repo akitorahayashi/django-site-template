@@ -26,7 +26,10 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        run: make setup
+        run: poetry install --no-root
+
+      - name: Create .env file from example
+        run: cp .env.example .env
 
       - name: Run tests
         run: make ${{ matrix.test_target }}
