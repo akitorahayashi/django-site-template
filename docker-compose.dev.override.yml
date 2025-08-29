@@ -1,0 +1,35 @@
+# Development override for docker-compose.yml
+
+services:
+  db:
+    environment:
+      - POSTGRES_DB=${POSTGRES_DEV_DB_NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d dj-site-templ-dev" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DEV_DB_NAME:-dj-site-templ-dev}
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:${DEV_PORT:-8001}:80"
+
+volumes:
+  venv_volume:
+    driver: local

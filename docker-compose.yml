@@ -1,46 +1,62 @@
 services:
+  db:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
   web:
+    image: dj-site-templ:latest
     build:
       context: .
       dockerfile: Dockerfile
       target: production
-    restart: unless-stopped
-    volumes:
-      - static-volume:/app/static
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-django_db}
-
-  db:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${DB_NAME:-django_db}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
     volumes:
-      - db-volume:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - static_volume:/app/static
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/').getcode() == 200 else sys.exit(1)" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
 
   nginx:
     build:
       context: ./nginx
     ports:
-      - "${HOST_BIND_IP:-127.0.0.1}:${HOST_PORT:-50080}:80"
+      - "${HOST_BIND_IP:-127.0.0.1}:${HOST_PORT:-8000}:80"
     volumes:
-      - static-volume:/app/static
+      - static_volume:/app/static
     depends_on:
-      - web
+      db:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
     restart: unless-stopped
 
 volumes:
-  static-volume:
-    external: false
-    name: ${PROJECT_NAME}-static-volume
-  db-volume:
-    external: false
-    name: ${COMPOSE_PROJECT_NAME}-db-volume
+  static_volume:
+    driver: local
+  db_volume:
+    driver: local

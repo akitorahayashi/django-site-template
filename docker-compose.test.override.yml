@@ -1,0 +1,20 @@
+services:
+  db:
+    environment:
+      - POSTGRES_DB=${POSTGRES_TEST_DB_NAME}
+
+  web:
+    build:
+      target: development
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_TEST_DB_NAME:-dj-site-templ-test}
+      - DJANGO_SETTINGS_MODULE=config.settings
+      - DEBUG=True
+      - COLLECT_STATIC=0
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${HOST_BIND_IP:-127.0.0.1}:${TEST_PORT:-8002}:8000"

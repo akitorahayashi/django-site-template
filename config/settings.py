@@ -10,28 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# .envファイルが存在する場合に、そこから設定を読み込む
-env_path = BASE_DIR / ".env"
-if env_path.is_file():
-    load_dotenv(dotenv_path=env_path)
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-&+b&$5acbee)+^*#i03fr*say6xn6(p3m+30*og@de3t2avt81"
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-default-key-change-this")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -79,11 +79,29 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+# Dynamic database URL construction based on DEBUG setting
+def get_database_url():
+    user = os.environ.get("POSTGRES_USER", "postgres")
+    password = os.environ.get("POSTGRES_PASSWORD", "password")
+    host = os.environ.get("POSTGRES_HOST", "db")
+    port = os.environ.get("POSTGRES_PORT", "5432")
+
+    # Choose database name based on DEBUG setting
+    if DEBUG:
+        db_name = os.environ.get("POSTGRES_DEV_DB_NAME", "django_dev_db")
+    else:
+        db_name = os.environ.get("POSTGRES_HOST_DB_NAME", "django_prod_db")
+
+    return f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=get_database_url(),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 

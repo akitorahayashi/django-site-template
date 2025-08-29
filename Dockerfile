@@ -1,75 +1,155 @@
-# --- Base Stage ---
-# Defines the base image for subsequent stages
+# syntax=docker/dockerfile:1.7-labs
+# ==============================================================================
+# Base Stage
+# - Common setup for all dependency stages (Poetry installation, system deps)
+# ==============================================================================
 FROM python:3.12-slim as base
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# Argument for pinning the Poetry version
+ARG POETRY_VERSION=2.1.4
+
+# Set environment variables for Poetry
+ENV POETRY_NO_INTERACTION=1 \
+  POETRY_VIRTUALENVS_IN_PROJECT=true \
+  POETRY_CACHE_DIR=/tmp/poetry_cache \
+  PATH="/root/.local/bin:${PATH}" \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install system dependencies required for the application
+# - curl: used for debugging in the development container
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN --mount=type=cache,target=/root/.cache \
+  pip install pipx && \
+  pipx ensurepath && \
+  pipx install "poetry==${POETRY_VERSION}"
+
+# Copy dependency definition files
+COPY pyproject.toml poetry.lock ./
+
+
+
+# ==============================================================================
+# Stage 1: Dev Dependencies
+# - Installs ALL dependencies (including development) to create a cached layer
+#   that can be leveraged by CI/CD for linting, testing, etc.
+# ==============================================================================
+FROM base as dev-deps
+
+# Install all dependencies, including development ones
+RUN --mount=type=cache,target=/tmp/poetry_cache \
+  poetry config virtualenvs.in-project true && \
+  poetry install --no-root
+
+
+
+# ==============================================================================
+# Stage 2: Production Dependencies
+# - Creates a lean virtual environment with only production dependencies.
+# ==============================================================================
+FROM base as prod-deps
+
+# Install only production dependencies
+RUN --mount=type=cache,target=/tmp/poetry_cache \
+  poetry config virtualenvs.in-project true && \
+  poetry install --no-root --only main
+
+
+
+# ==============================================================================
+# Stage 3: Development
+# - Development environment with all dependencies and debugging tools
+# - Includes curl and other development utilities
+# ==============================================================================
+FROM python:3.12-slim AS development
+
+# Install development tools
+RUN apt-get update && apt-get install -y curl postgresql-client && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for development
+RUN groupadd -r appgroup && useradd -r -g appgroup -d /home/appuser -m appuser
+
+WORKDIR /app
+RUN chown appuser:appgroup /app
+
+# Copy the development virtual environment from dev-deps stage
+COPY --from=dev-deps /app/.venv ./.venv
+
+# Set the PATH to include the venv's bin directory
+ENV PATH="/app/.venv/bin:${PATH}"
+
+# Copy application code
+COPY --chown=appuser:appgroup manage.py .
+COPY --chown=appuser:appgroup apps/ ./apps/
+COPY --chown=appuser:appgroup config/ ./config/
+COPY --chown=appuser:appgroup pyproject.toml .
+COPY --chown=appuser:appgroup entrypoint.sh .
+
+RUN chmod +x entrypoint.sh
+
+# Switch to non-root user
+USER appuser
+
+EXPOSE 8000
+
+# Development healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health/').getcode() == 200 else sys.exit(1)"
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+
+
+# ==============================================================================
+# Stage 4: Production
+# - Creates the final, lightweight production image.
+# - Copies the lean venv and only necessary application files.
+# ==============================================================================
+FROM python:3.12-slim AS production
+
+# Create a non-root user and group for security
+RUN groupadd -r appgroup && useradd -r -g appgroup -d /home/appuser -m appuser
 
 # Set the working directory
 WORKDIR /app
 
-# Install poetry
-RUN pip install --no-cache-dir --disable-pip-version-check poetry \
-    && poetry config virtualenvs.in-project true
+# Grant ownership of the working directory to the non-root user
+RUN chown appuser:appgroup /app
 
-# --- Builder Stage ---
-# Installs all dependencies (for development and production)
-FROM base as builder
+# Copy the lean virtual environment from the prod-deps stage
+COPY --from=prod-deps /app/.venv ./.venv
 
-# Copy only the files necessary for installing dependencies
-COPY poetry.lock pyproject.toml ./
+# Set the PATH to include the venv's bin directory for simpler command execution
+ENV PATH="/app/.venv/bin:${PATH}" \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONUNBUFFERED=1
 
-# Install all dependencies, including dev dependencies
-RUN poetry install --no-root
-
-
-# --- Prod-Builder Stage ---
-# Installs only production dependencies
-FROM base as prod-builder
-
-# Copy only the files necessary for installing dependencies
-COPY poetry.lock pyproject.toml ./
-
-# Install only production dependencies
-RUN poetry install --no-root --only main
-
-
-# --- Production Stage ---
-# Final image for production (without Poetry)
-FROM python:3.12-slim as production
-
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-WORKDIR /app
-
-# Create a non-privileged user
-RUN addgroup --system appgroup && \
-    adduser --system --ingroup appgroup --no-create-home appuser
-
-# Copy virtual environment from the prod-builder stage
-COPY --from=prod-builder /app/.venv/ /opt/venv/
-# Ensure venv on PATH
-ENV PATH="/opt/venv/bin:${PATH}"
-# Copy the entrypoint script
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Copy application code with correct permissions
+# Copy only the necessary application code and configuration, excluding tests
 COPY --chown=appuser:appgroup manage.py .
 COPY --chown=appuser:appgroup apps/ ./apps/
 COPY --chown=appuser:appgroup config/ ./config/
+COPY --chown=appuser:appgroup pyproject.toml .
+COPY --chown=appuser:appgroup entrypoint.sh .
 
-# Grant ownership of the app directory to the appuser
-# This allows the user to create files like the SQLite database
-RUN chown appuser:appgroup /app
+# Grant execute permissions to the entrypoint script
+RUN chmod +x entrypoint.sh
 
-# Switch to the non-privileged user
+# Switch to the non-root user
 USER appuser
 
-# Set the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+# Expose the port the app runs on (will be mapped by Docker Compose)
+EXPOSE 8000
+
+# Healthcheck using only Python's standard library to avoid extra dependencies
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import sys, urllib.request; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/health/').getcode() == 200 else sys.exit(1)"
+
+# Set the entrypoint script to be executed when the container starts
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Default command (can be overridden)
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
